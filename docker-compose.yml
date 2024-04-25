@@ -1,0 +1,12 @@
+services:
+  wptest:
+    image: $DSPDF_CI_REGISTRY_IMAGE/wptest:latest
+    container_name: wptest-app
+    # build:
+    #   context: .
+    #   args:
+    #     IMAGE_REGISTRY_PATH: $IMAGE_REGISTRY_PATH
+    #     APP_NAME: wptest
+    ports:
+      - "58888:8080"
+

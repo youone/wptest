@@ -1,0 +1,29 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "Nodejs dev container",
+	"image": "${env:IMAGE_REGISTRY_PATH}/node:18.17.1",
+	"containerEnv": {
+		"CI_SERVER_HOST1": "${env:GITLAB_CI_SERVER_HOST}",
+		"CI_COMMIT_SHORT_SHA": "${env:CI_COMMIT_SHORT_SHA}",
+		"CI_SERVER_HOST": "${env:CI_SERVER_HOST}",
+		"CI_PROJECT_ID": "${env:CI_PROJECT_ID}",
+		"PERSONAL_ACCESS_TOKEN": "${env:PERSONAL_ACCESS_TOKEN}",
+		"GITLAB_INSTANCE": "${env:GITLAB_INSTANCE}"
+	}
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "uname -a",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

@@ -1,0 +1,179 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CICD build wasm",
+      "type": "shell",
+      "command": ".scripts/local/build.sh wasm",
+      "windows": {
+        "command": ".scripts\\local\\build.bat wasm"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CICD build package",
+      "type": "shell",
+      "command": ".scripts/local/build.sh package",
+      "windows": {
+        "command": ".scripts\\local\\build.bat package"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CICD test package",
+      "type": "shell",
+      "command": ".scripts/local/build.sh test",
+      "windows": {
+        "command": ".scripts\\local\\build.bat test"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CICD publish package",
+      "type": "shell",
+      "command": ".scripts/local/build.sh publish",
+      "windows": {
+        "command": ".scripts\\local\\build.bat publish"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CICD build image",
+      "type": "shell",
+      "command": ".scripts/local/build.sh image",
+      "windows": {
+        "command": ".scripts\\local\\build.bat image"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CICD depoly image",
+      "type": "shell",
+      "command": ".scripts/local/build.sh deploy",
+      "windows": {
+        "command": ".scripts\\local\\build.bat deploy"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CICD build documentation",
+      "type": "shell",
+      "command": ".scripts/local/build.sh doc",
+      "windows": {
+        "command": ".scripts\\local\\build.bat doc"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "start dind locally",
+      "type": "shell",
+      "command": ".scripts/local/run_dind.sh",
+      "windows": {
+        "command": ".scripts\\local\\run_dind.bat"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "clean",
+      "type": "shell",
+      "command": "rm -rf build dist node_modules package doc/index.html",
+      "windows": {
+        "command": "del doc\\index.html && rmdir /s /q build dist node_modules package"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "docker-compose up",
+      "type": "shell",
+      "command": "docker-compose --context default up -d --build",
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run app",
+      "type": "shell",
+      "command": "npm run serve",
+      "group": "none",
+      "presentation": {
+        "group": "groupA"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run dev server",
+      "type": "shell",
+      "command": "npm run dev",
+      "group": "none",
+      "presentation": {
+        "group": "groupA"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run both",
+      "dependsOn": [
+        "run app",
+        "run dev server"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "problemMatcher": [],
+      "label": "npm: dev",
+      "detail": "webpack serve"
+    }
+  ]
+}

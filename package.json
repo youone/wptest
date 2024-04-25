@@ -1,0 +1,56 @@
+{
+  "name": "@dspdf/wptest",
+  "version": "1.0.2",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "@dspdf/wptest": "server.js",
+    "runserver": "server.js",
+    "test-wptest": "test/runTests.js"
+  },
+  "scripts": {
+    "build": "webpack",
+    "dev": "webpack serve",
+    "devserve": "webpack serve --env server=start",
+    "serve": "nodemon server.js",
+    "test": "jest --silent",
+    "clean": "rmdir /s /q build dist node_modules package",
+    "cicd:build:documentation": ".scripts\\local\\build.bat doc",
+    "cicd:build:package": ".scripts\\local\\build.bat package",
+    "cicd:build:image": ".scripts\\local\\build.bat image",
+    "cicd:test:package": ".scripts\\local\\build.bat test",
+    "cicd:publish:package": ".scripts\\local\\build.bat publish",
+    "cicd.deploy:image": ".scripts\\local\\build.bat deploy",
+    "dind": ".scripts\\local\\run_dind.bat",
+    "preinstall": "node .scripts/getNodeHeaders.js && node-gyp rebuild --tarball lib/headers.tgz"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.1",
+    "http-proxy-middleware": "^2.0.6",
+    "jest": "^29.7.0",
+    "log4js": "^6.9.1",
+    "node-addon-api": "^7.1.0",
+    "node-gyp": "^10.0.1",
+    "nodemon": "^3.1.0",
+    "worker-loader": "^3.0.8",
+    "ws": "^8.16.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "html-webpack-plugin": "^5.6.0",
+    "terser-webpack-plugin": "^5.3.10",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "4.15.1"
+  },
+  "jest": {
+    "testPathIgnorePatterns": [],
+    "haste": {
+      "retainAllFiles": true
+    }
+  }
+}
