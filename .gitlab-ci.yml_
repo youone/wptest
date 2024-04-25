@@ -1,0 +1,100 @@
+stages:
+  - build
+  - test
+  - publish
+
+# # only run manually
+# workflow:
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "web"
+#       when: always
+#     - when: never
+
+build documentation:
+  stage: build
+  image: $IMAGE_NAME_DOCKER:20.10.16
+  tags:
+    - $GITLAB_RUNNER_DIND
+  services:
+    - $IMAGE_NAME_DOCKER:20.10.16-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+   - source .scripts/cicd/dind_doc.sh
+  artifacts:
+    paths:
+      - doc/index.html
+
+build wasm:
+  stage: build
+  image: $IMAGE_REGISTRY_PATH/dspdf-wasm
+  tags:
+    - $GITLAB_RUNNER_DEFAULT
+  script:
+    - source .scripts/cicd/jobs.sh; build-wasm
+  artifacts:
+    paths:
+      - lib/wasm-module.js
+
+build package:
+  stage: build
+  needs: 
+    - build wasm
+    - build documentation
+  image: $IMAGE_REGISTRY_PATH_MAIN/node:18.17.1
+  tags:
+    - $GITLAB_RUNNER_DEFAULT
+  script:
+    - source .scripts/cicd/jobs.sh; build-package
+  artifacts:
+    paths:
+      - package-lock.json
+      - package
+      - dockerfile
+      - .scripts
+
+test package:
+  stage: test
+  needs: 
+    - build package
+  image: $IMAGE_REGISTRY_PATH_MAIN/node:18.17.1
+  variables:
+    GIT_STRATEGY: none
+  tags:
+    - $GITLAB_RUNNER_DEFAULT
+  script:
+    - source .scripts/cicd/jobs.sh; test-package
+  artifacts:
+    paths:
+      - package
+      - dockerfile
+      - .scripts
+
+publish package:
+  stage: publish
+  needs: 
+    - test package
+  image: $IMAGE_REGISTRY_PATH_MAIN/node:18.17.1
+  variables:
+    GIT_STRATEGY: none
+  tags:
+    - $GITLAB_RUNNER_DEFAULT
+  script:
+    - source .scripts/cicd/jobs.sh; publish-package
+  allow_failure: true
+
+publish image:
+  stage: publish
+  needs: 
+    - test package
+  image: $IMAGE_NAME_DOCKER:20.10.16
+  variables:
+    IMAGE_REGISTRY_PATH: $IMAGE_REGISTRY_PATH_MAIN
+    APP_NAME: wptest
+  tags:
+    - $GITLAB_RUNNER_DIND
+  services:
+    - name: $IMAGE_NAME_DOCKER:20.10.16-dind
+  script:
+    - source .scripts/cicd/dind_image.sh
+
