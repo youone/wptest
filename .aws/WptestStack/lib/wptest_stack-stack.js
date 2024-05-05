@@ -2,8 +2,10 @@ const { Stack, Duration } = require('aws-cdk-lib');
 const { WebAssemblyBuildProject } = require('./WebAssemblyBuildProject');
 const iam = require('aws-cdk-lib/aws-iam');
 const s3 = require('aws-cdk-lib/aws-s3');
+// const { CodePipeline, CodePipelineSource, ShellStep, CodeBuildStep } = require('aws-cdk-lib/pipelines');
 const codepipeline = require('aws-cdk-lib/aws-codepipeline');
 const codepipeline_actions = require('aws-cdk-lib/aws-codepipeline-actions');
+const  codebuild = require('aws-cdk-lib').aws_codebuild;
 const cdk = require('aws-cdk-lib');
 // const sqs = require('aws-cdk-lib/aws-sqs');
 
@@ -43,6 +45,49 @@ class WptestPipelinekStack extends Stack {
       });
 
     const webAssemblyProject = new WebAssemblyBuildProject(this, pipelineRole, wasmArtifactBucket);
+
+    const buildProject = new codebuild.PipelineProject(this, 'BuildProject', {
+      environment: {
+        buildImage: codebuild.LinuxBuildImage.STANDARD_5_0
+      }
+    });
+
+    const pipeline = new codepipeline.Pipeline(this, 'Pipeline', {
+      pipelineName: 'DemoPipeline2'
+    });
+
+   // Create an output artifact
+   const sourceOutput = new codepipeline.Artifact();
+
+   // Add a source stage to the pipeline
+   const sourceStage = pipeline.addStage({
+     stageName: 'Source'
+   });
+
+   sourceStage.addAction(new codepipeline_actions.CodeStarConnectionsSourceAction({
+      actionName: 'GitHub_Source',
+      owner: 'youone',
+      repo: 'wptest',
+      connectionArn: 'arn:aws:codestar-connections:eu-north-1:007911779249:connection/a9c38cf4-fdaf-481b-8f87-fdad88c0895d',
+      // oauthToken: cdk.SecretValue.secretsManager('github-oauth-token'),
+      output:sourceOutput,
+      branch: 'main', // Optional: default is 'master'
+      // trigger: codepipeline_actions.GitHubTrigger.WEBHOOK // Optional: default is webhook
+   }));
+
+    const buildStage = pipeline.addStage({
+      stageName: 'Build'
+    });
+
+   // Create an output artifact
+   const wasmOutput = new codepipeline.Artifact();
+
+    buildStage.addAction(new codepipeline_actions.CodeBuildAction({
+      actionName: 'CodeBuild',
+      project: webAssemblyProject,
+      input: sourceOutput, // This assumes you have a source stage outputting an artifact
+      outputs: [wasmOutput]
+    }));
 
 //     // const sourceOutput = new codepipeline.Artifact();
 //     const wasmOutput = new codepipeline.Artifact();
