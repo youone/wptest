@@ -2,8 +2,9 @@ const  codebuild = require('aws-cdk-lib').aws_codebuild;
 // const Construct = require('constructs').Construct;
 
 class WebAssemblyBuildProject extends codebuild.Project {
-    constructor(scope) {
+    constructor(scope, pipelineRole, wasmArtifactBucket) {
         super(scope, 'wptestCodeBuild', {
+            role: pipelineRole,
             source: codebuild.Source.gitHub({
                 owner: 'youone',
                 repo: 'wptest',
@@ -23,9 +24,17 @@ class WebAssemblyBuildProject extends codebuild.Project {
                     build: {
                         commands: [
                             'bash -c "source .scripts/cicd/jobs.sh; build-wasm"',
+                            'ls -al lib/'
                         ],
                     },
                 },
+                artifacts: {
+                    files: 'lib/wasm-module.js',
+                },
+            }),
+            artifacts: codebuild.Artifacts.s3({
+                bucket: wasmArtifactBucket,
+                packageZip: false
             }),
         });
     }
