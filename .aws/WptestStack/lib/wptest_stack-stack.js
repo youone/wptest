@@ -53,7 +53,7 @@ class WptestPipelinekStack extends Stack {
     });
 
     const pipeline = new codepipeline.Pipeline(this, 'Pipeline', {
-      pipelineName: 'DemoPipeline2'
+      pipelineName: 'DemoPipeline3'
     });
 
    // Create an output artifact
@@ -80,13 +80,21 @@ class WptestPipelinekStack extends Stack {
     });
 
    // Create an output artifact
-   const wasmOutput = new codepipeline.Artifact();
+   const wasmOutput1 = new codepipeline.Artifact();
+   const wasmOutput2 = new codepipeline.Artifact();
 
     buildStage.addAction(new codepipeline_actions.CodeBuildAction({
-      actionName: 'CodeBuild',
+      actionName: 'CodeBuild1',
       project: webAssemblyProject,
       input: sourceOutput, // This assumes you have a source stage outputting an artifact
-      outputs: [wasmOutput]
+      outputs: [wasmOutput1]
+    }));
+
+    buildStage.addAction(new codepipeline_actions.CodeBuildAction({
+      actionName: 'CodeBuild2',
+      project: webAssemblyProject,
+      input: sourceOutput, // This assumes you have a source stage outputting an artifact
+      outputs: [wasmOutput2]
     }));
 
 //     // const sourceOutput = new codepipeline.Artifact();
