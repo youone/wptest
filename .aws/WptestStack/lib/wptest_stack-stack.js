@@ -1,11 +1,11 @@
 const { Stack, Duration } = require('aws-cdk-lib');
-const { WebAssemblyBuildProject } = require('./WebAssemblyBuildProject');
+const { WebAssemblyBuildProject, PackageBuildProject } = require('./buildProjects');
 const iam = require('aws-cdk-lib/aws-iam');
 const s3 = require('aws-cdk-lib/aws-s3');
 // const { CodePipeline, CodePipelineSource, ShellStep, CodeBuildStep } = require('aws-cdk-lib/pipelines');
 const codepipeline = require('aws-cdk-lib/aws-codepipeline');
 const codepipeline_actions = require('aws-cdk-lib/aws-codepipeline-actions');
-const  codebuild = require('aws-cdk-lib').aws_codebuild;
+const codebuild = require('aws-cdk-lib').aws_codebuild;
 const cdk = require('aws-cdk-lib');
 // const sqs = require('aws-cdk-lib/aws-sqs');
 
@@ -28,13 +28,13 @@ class WptestPipelinekStack extends Stack {
 
     pipelineRole.addToPolicy(new iam.PolicyStatement({
       actions: ['s3:*'],
-      resources: ['*'], 
+      resources: ['*'],
       effect: iam.Effect.ALLOW
     }));
 
     pipelineRole.addToPolicy(new iam.PolicyStatement({
       actions: ['iam:*'],
-      resources: ['*'], 
+      resources: ['*'],
       effect: iam.Effect.ALLOW
     }));
 
@@ -42,9 +42,10 @@ class WptestPipelinekStack extends Stack {
       bucketName: 'tamsin-artifact-bucket',
       // publicReadAccess: true,  // Adjust this according to your needs
       removalPolicy: cdk.RemovalPolicy.DESTROY
-      });
+    });
 
     const webAssemblyProject = new WebAssemblyBuildProject(this, pipelineRole, wasmArtifactBucket);
+    const packageProject = new PackageBuildProject(this, pipelineRole, wasmArtifactBucket);
 
     const buildProject = new codebuild.PipelineProject(this, 'BuildProject', {
       environment: {
@@ -53,76 +54,78 @@ class WptestPipelinekStack extends Stack {
     });
 
     const pipeline = new codepipeline.Pipeline(this, 'Pipeline', {
-      pipelineName: 'DemoPipeline3'
+      pipelineName: 'TamsinWptestPipeline'
     });
 
-   // Create an output artifact
-   const sourceOutput = new codepipeline.Artifact();
+    // Create an output artifact
+    const sourceOutput = new codepipeline.Artifact();
 
-   // Add a source stage to the pipeline
-   const sourceStage = pipeline.addStage({
-     stageName: 'Source'
-   });
+    // Add a source stage to the pipeline
+    const sourceStage = pipeline.addStage({
+      stageName: 'Source'
+    });
 
-   sourceStage.addAction(new codepipeline_actions.CodeStarConnectionsSourceAction({
+    sourceStage.addAction(new codepipeline_actions.CodeStarConnectionsSourceAction({
       actionName: 'GitHub_Source',
       owner: 'youone',
       repo: 'wptest',
       connectionArn: 'arn:aws:codestar-connections:eu-north-1:007911779249:connection/a9c38cf4-fdaf-481b-8f87-fdad88c0895d',
       // oauthToken: cdk.SecretValue.secretsManager('github-oauth-token'),
-      output:sourceOutput,
+      output: sourceOutput,
       branch: 'main', // Optional: default is 'master'
       // trigger: codepipeline_actions.GitHubTrigger.WEBHOOK // Optional: default is webhook
-   }));
+    }));
 
-    const buildStage = pipeline.addStage({
-      stageName: 'Build'
+    const buildWasmStage = pipeline.addStage({
+      stageName: 'BuildWasm'
     });
-
-   // Create an output artifact
-   const wasmOutput1 = new codepipeline.Artifact();
-   const wasmOutput2 = new codepipeline.Artifact();
-
-    buildStage.addAction(new codepipeline_actions.CodeBuildAction({
-      actionName: 'CodeBuild1',
+    const wasmOutput = new codepipeline.Artifact();
+    buildWasmStage.addAction(new codepipeline_actions.CodeBuildAction({
+      actionName: 'BuildWasmActiomn',
       project: webAssemblyProject,
       input: sourceOutput, // This assumes you have a source stage outputting an artifact
-      outputs: [wasmOutput1]
+      outputs: [wasmOutput]
     }));
 
-    buildStage.addAction(new codepipeline_actions.CodeBuildAction({
-      actionName: 'CodeBuild2',
-      project: webAssemblyProject,
-      input: sourceOutput, // This assumes you have a source stage outputting an artifact
-      outputs: [wasmOutput2]
+    const buildPackageStage = pipeline.addStage({
+      stageName: 'BuildPackage'
+    });
+    const packageOutput = new codepipeline.Artifact();
+    buildPackageStage.addAction(new codepipeline_actions.CodeBuildAction({
+      actionName: 'BuildPackageAction',
+      project: packageProject,
+      input: wasmOutput, // This assumes you have a source stage outputting an artifact
+      outputs: [packageOutput]
     }));
 
-//     // const sourceOutput = new codepipeline.Artifact();
-//     const wasmOutput = new codepipeline.Artifact();
 
-//     const wasmBuildAction = new codepipeline_actions.CodeBuildAction({
-//       actionName: 'CompileWebAssembly',
-//       project: webAssemblyProject,
-//       // input: sourceOutput,
-//       outputs: [wasmOutput],
-//   });
 
-//   const wptestPipeline = new codepipeline.Pipeline(this, 'TamsinWptestPipelinr');
-//   const wasmStage = wptestPipeline.addStage({ stageName: 'BuildWasm', actions: [wasmBuildAction]});
+    //     // const sourceOutput = new codepipeline.Artifact();
+    //     const wasmOutput = new codepipeline.Artifact();
 
-//   //   , {
-// //     pipelineName: 'TamsinWptestPipelinr',
-// //     stages: [
-// //         {
-// //             stageName: 'CompileWebAssembly',
-// //             actions: [wasmBuildAction],
-// //         },
-// //         // {
-// //         //     stageName: 'WebpackBuild',
-// //         //     actions: [webpackBuildAction],
-// //         // },
-// //     ],
-// // });
+    //     const wasmBuildAction = new codepipeline_actions.CodeBuildAction({
+    //       actionName: 'CompileWebAssembly',
+    //       project: webAssemblyProject,
+    //       // input: sourceOutput,
+    //       outputs: [wasmOutput],
+    //   });
+
+    //   const wptestPipeline = new codepipeline.Pipeline(this, 'TamsinWptestPipelinr');
+    //   const wasmStage = wptestPipeline.addStage({ stageName: 'BuildWasm', actions: [wasmBuildAction]});
+
+    //   //   , {
+    // //     pipelineName: 'TamsinWptestPipelinr',
+    // //     stages: [
+    // //         {
+    // //             stageName: 'CompileWebAssembly',
+    // //             actions: [wasmBuildAction],
+    // //         },
+    // //         // {
+    // //         //     stageName: 'WebpackBuild',
+    // //         //     actions: [webpackBuildAction],
+    // //         // },
+    // //     ],
+    // // });
   }
 }
 
