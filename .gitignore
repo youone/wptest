@@ -4,7 +4,7 @@ doc/index.html
 build
 package
 config.js
-lib/headers.tgz
+lib/wasm-module.js
 .npmrc
 id_rsa.appServer
 .scripts/local/env.txt
