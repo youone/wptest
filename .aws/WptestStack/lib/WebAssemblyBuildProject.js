@@ -23,7 +23,7 @@ class WebAssemblyBuildProject extends codebuild.Project {
                 phases: {
                     build: {
                         commands: [
-                            'bash -c "source .scripts/cicd/jobs.sh; build-wasm"',
+                            'bash -c "source .scripts/cicd/jobs-aws.sh; build-wasm"',
                             'ls -al lib/'
                         ],
                     },
