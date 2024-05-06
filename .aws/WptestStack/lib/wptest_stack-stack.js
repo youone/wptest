@@ -1,5 +1,5 @@
 const { Stack, Duration } = require('aws-cdk-lib');
-const { WebAssemblyBuildProject, PackageBuildProject } = require('./buildProjects');
+const { WebAssemblyBuildProject, PackageBuildProject, PublishProject } = require('./buildProjects');
 const iam = require('aws-cdk-lib/aws-iam');
 const s3 = require('aws-cdk-lib/aws-s3');
 // const { CodePipeline, CodePipelineSource, ShellStep, CodeBuildStep } = require('aws-cdk-lib/pipelines');
@@ -20,6 +20,7 @@ class WptestPipelinekStack extends Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
         iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMPatchAssociation'),
         iam.ManagedPolicy.fromAwsManagedPolicyName('AWSCodeBuildAdminAccess'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AWSCodeArtifactAdminAccess'),
         iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'),
         iam.ManagedPolicy.fromAwsManagedPolicyName('IAMFullAccess'),
       ],
@@ -38,14 +39,17 @@ class WptestPipelinekStack extends Stack {
       effect: iam.Effect.ALLOW
     }));
 
+    pipelineRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['codeartifact:*'],
+      resources: ['*'],
+      effect: iam.Effect.ALLOW
+    }));
+
     const wasmArtifactBucket = new s3.Bucket(this, 'TamsinWasmArtifactBucket', {
       bucketName: 'tamsin-artifact-bucket',
       // publicReadAccess: true,  // Adjust this according to your needs
       removalPolicy: cdk.RemovalPolicy.DESTROY
     });
-
-    const webAssemblyProject = new WebAssemblyBuildProject(this, pipelineRole, wasmArtifactBucket);
-    const packageProject = new PackageBuildProject(this, pipelineRole, wasmArtifactBucket);
 
     const buildProject = new codebuild.PipelineProject(this, 'BuildProject', {
       environment: {
@@ -76,6 +80,7 @@ class WptestPipelinekStack extends Stack {
       // trigger: codepipeline_actions.GitHubTrigger.WEBHOOK // Optional: default is webhook
     }));
 
+    const webAssemblyProject = new WebAssemblyBuildProject(this, pipelineRole, wasmArtifactBucket);
     const buildWasmStage = pipeline.addStage({
       stageName: 'BuildWasm'
     });
@@ -87,6 +92,7 @@ class WptestPipelinekStack extends Stack {
       outputs: [wasmOutput]
     }));
 
+    const packageProject = new PackageBuildProject(this, pipelineRole, wasmArtifactBucket);
     const buildPackageStage = pipeline.addStage({
       stageName: 'BuildPackage'
     });
@@ -96,6 +102,18 @@ class WptestPipelinekStack extends Stack {
       project: packageProject,
       input: wasmOutput, // This assumes you have a source stage outputting an artifact
       outputs: [packageOutput]
+    }));
+
+    const publishProject = new PublishProject(this, pipelineRole, wasmArtifactBucket);
+    const publishStage = pipeline.addStage({
+      stageName: 'PublishPackage'
+    });
+    const publishOutput = new codepipeline.Artifact();
+    publishStage.addAction(new codepipeline_actions.CodeBuildAction({
+      actionName: 'PublishAction',
+      project: publishProject,
+      input: packageOutput, // This assumes you have a source stage outputting an artifact
+      outputs: [publishOutput]
     }));
 
 

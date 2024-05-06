@@ -1,4 +1,5 @@
-const  codebuild = require('aws-cdk-lib').aws_codebuild;
+const cdk = require('aws-cdk-lib');
+const codebuild = require('aws-cdk-lib').aws_codebuild;
 // const Construct = require('constructs').Construct;
 
 class WebAssemblyBuildProject extends codebuild.Project {
@@ -75,6 +76,7 @@ class PackageBuildProject extends codebuild.Project {
                 artifacts: {
                     files: [
                         'package/**/*',
+                        'dockerfile',
                         '.scripts/**/*',
                       ],
                 },
@@ -87,8 +89,37 @@ class PackageBuildProject extends codebuild.Project {
     }
 }
 
+class PublishProject extends codebuild.Project {
+    constructor(scope, pipelineRole, wasmArtifactBucket) {
+        super(scope, 'wptestPackagePublish', {
+            role: pipelineRole,
+            environment: {
+                buildImage: codebuild.LinuxBuildImage.fromCodeBuildImageId('aws/codebuild/standard:7.0'),
+            },
+            buildSpec: codebuild.BuildSpec.fromObject({
+                version: '0.2',
+                phases: {
+                    build: {
+                        commands: [
+                            'ls -al package',
+                            'aws --version',
+                            'node --version',
+                            'npm --version',
+                            `aws codeartifact login --tool npm --domain dfdsp --domain-owner ${cdk.Aws.ACCOUNT_ID} --repository dfdsp-npm-repo`,
+                            'cat ~/.npmrc',
+                            'mv package/*.tgz ./package.tgz',
+                            'npm publish package.tgz',
+                        ],
+                    },
+                },
+            })
+        });
+    }
+}
+
 
 module.exports = { 
     WebAssemblyBuildProject,
-    PackageBuildProject
+    PackageBuildProject,
+    PublishProject
 };
