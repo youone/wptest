@@ -1,5 +1,5 @@
 const { Stack, Duration } = require('aws-cdk-lib');
-const { WebAssemblyBuildProject, PackageBuildProject, PublishProject } = require('./buildProjects');
+const { WebAssemblyBuildProject, DocumentationBuildProject, PackageBuildProject, PublishProject } = require('./buildProjects');
 const iam = require('aws-cdk-lib/aws-iam');
 const s3 = require('aws-cdk-lib/aws-s3');
 // const { CodePipeline, CodePipelineSource, ShellStep, CodeBuildStep } = require('aws-cdk-lib/pipelines');
@@ -80,16 +80,24 @@ class WptestPipelinekStack extends Stack {
       // trigger: codepipeline_actions.GitHubTrigger.WEBHOOK // Optional: default is webhook
     }));
 
-    const webAssemblyProject = new WebAssemblyBuildProject(this, pipelineRole, wasmArtifactBucket);
+    const webAssemblyBuildProject = new WebAssemblyBuildProject(this, pipelineRole, wasmArtifactBucket);
+    const documentationBuildProject = new DocumentationBuildProject(this, pipelineRole, wasmArtifactBucket);
     const buildWasmStage = pipeline.addStage({
-      stageName: 'BuildWasm'
+      stageName: 'BuildWasmAndDoc'
     });
-    const wasmOutput = new codepipeline.Artifact();
+    const wasmOutput = new codepipeline.Artifact('wasmArtifact');
+    const docOutput = new codepipeline.Artifact('docArtifact');
     buildWasmStage.addAction(new codepipeline_actions.CodeBuildAction({
-      actionName: 'BuildWasmActiomn',
-      project: webAssemblyProject,
+      actionName: 'BuildWasmAction',
+      project: webAssemblyBuildProject,
       input: sourceOutput, // This assumes you have a source stage outputting an artifact
       outputs: [wasmOutput]
+    }));
+    buildWasmStage.addAction(new codepipeline_actions.CodeBuildAction({
+      actionName: 'BuildDocAction',
+      project: documentationBuildProject,
+      input: sourceOutput, // This assumes you have a source stage outputting an artifact
+      outputs: [docOutput]
     }));
 
     const packageProject = new PackageBuildProject(this, pipelineRole, wasmArtifactBucket);
@@ -101,6 +109,7 @@ class WptestPipelinekStack extends Stack {
       actionName: 'BuildPackageAction',
       project: packageProject,
       input: wasmOutput, // This assumes you have a source stage outputting an artifact
+      extraInputs: [docOutput],
       outputs: [packageOutput]
     }));
 

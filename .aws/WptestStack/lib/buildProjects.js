@@ -37,11 +37,52 @@ class WebAssemblyBuildProject extends codebuild.Project {
             }),
             artifacts: codebuild.Artifacts.s3({
                 bucket: wasmArtifactBucket,
+                name: 'wasmOutput',
                 packageZip: false
             }),
         });
     }
 }
+
+class DocumentationBuildProject extends codebuild.Project {
+    constructor(scope, pipelineRole, wasmArtifactBucket) {
+        super(scope, 'wptestDocBuild', {
+            role: pipelineRole,
+            source: codebuild.Source.gitHub({
+                owner: 'youone',
+                repo: 'wptest',
+            }),
+            environment: {
+                buildImage: codebuild.LinuxBuildImage.fromCodeBuildImageId('aws/codebuild/standard:7.0'),
+            },
+            buildSpec: codebuild.BuildSpec.fromObject({
+                version: '0.2',
+                phases: {
+                    build: {
+                        commands: [
+                            'docker run --rm -v $(pwd)/doc:/documents asciidoctor/docker-asciidoctor asciidoctor -o index.html documentation.adoc',
+                            // 'printf "\n\033[0;32mreplacing https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9\nwith ${MATHJAX_URL}\033[0m \n"',
+                            // 'sed -i "s@https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9@${MATHJAX_URL}@g" doc/index.html',
+                            'ls -al doc/',
+                            // 'mv doc/index.html ./index.html',
+                        ],
+                    },
+                },
+                artifacts: {
+                    files: [
+                        'doc/**/*'
+                      ],
+                },
+            }),
+            artifacts: codebuild.Artifacts.s3({
+                bucket: wasmArtifactBucket,
+                name: 'docOutput',
+                packageZip: false
+            }),
+        });
+    }
+}
+
 
 class PackageBuildProject extends codebuild.Project {
     constructor(scope, pipelineRole, wasmArtifactBucket) {
@@ -67,8 +108,8 @@ class PackageBuildProject extends codebuild.Project {
                 phases: {
                     build: {
                         commands: [
-                            'ls -al',
-                            'ls -al .scripts/',
+                            'rm -rf doc',
+                            'cp -r ../01/doc ./doc',
                             'bash -c "source .scripts/cicd/jobs-aws.sh; build-package"',
                         ],
                     },
@@ -102,10 +143,7 @@ class PublishProject extends codebuild.Project {
                     build: {
                         commands: [
                             'ls -al package',
-                            'aws --version',
-                            'node --version',
-                            'npm --version',
-                            `aws codeartifact login --tool npm --domain dfdsp --domain-owner ${cdk.Aws.ACCOUNT_ID} --repository dfdsp-npm-repo`,
+                            `aws codeartifact login --tool npm --domain dspdf --domain-owner ${cdk.Aws.ACCOUNT_ID} --repository dspdf-npm-repo`,
                             'cat ~/.npmrc',
                             'mv package/*.tgz ./package.tgz',
                             'npm publish package.tgz',
@@ -120,6 +158,7 @@ class PublishProject extends codebuild.Project {
 
 module.exports = { 
     WebAssemblyBuildProject,
+    DocumentationBuildProject,
     PackageBuildProject,
     PublishProject
 };
